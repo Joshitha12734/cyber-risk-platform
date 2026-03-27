@@ -3,7 +3,7 @@ AI-powered Cyber Risk Intelligence Platform that integrates vulnerability data w
 # Cyber Risk Intelligence Platform
 
  **Live App:**
-https://cyber-risk-platform-8mcnbbknmnk4appjvw2d4ms.streamlit.app
+https://cyber-risk-platform-8mcnbbknmnk4appjvv2d4ms.streamlit.app/
 
 ---
 
