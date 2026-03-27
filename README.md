@@ -3,6 +3,14 @@ AI-powered Cyber Risk Intelligence Platform that integrates vulnerability data w
 # Cyber Risk Intelligence Platform
 
  **Live App:**
+  Secure Access
+
+This platform includes a basic authentication layer to simulate real-world access control in cybersecurity systems.
+
+Use the following credentials to explore the dashboard
+
+Username: admin  
+Password: crq123
 https://cyber-risk-platform-8mcnbbknmnk4appjvv2d4ms.streamlit.app/
 
 ---
