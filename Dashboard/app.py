@@ -20,7 +20,7 @@ def login():
     p = st.text_input("Password", type="password")
 
     if st.button("Login"):
-        if u == "admin" and p == "admin123":
+        if u == "admin" and p == "test1234":
             st.session_state["logged_in"] = True
         else:
             st.error("Invalid credentials")
