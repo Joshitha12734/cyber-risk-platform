@@ -11,7 +11,7 @@ st.set_page_config(page_title="Enterprise Cyber Risk Platform", layout="wide")
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "Outputs")
 
 # ==============================
-# LOGIN SYSTEM
+# LOGIN
 # ==============================
 def login():
     st.title("🔐 CRQ Platform Login")
@@ -20,7 +20,7 @@ def login():
     p = st.text_input("Password", type="password")
 
     if st.button("Login"):
-        if u == "admin" and p == "test1234":
+        if u == "admin" and p == "admin123":
             st.session_state["logged_in"] = True
         else:
             st.error("Invalid credentials")
@@ -33,7 +33,7 @@ if not st.session_state["logged_in"]:
     st.stop()
 
 # ==============================
-# LOAD DATA (FIXED + LLM READY)
+# LOAD DATA
 # ==============================
 @st.cache_data
 def load_data():
@@ -42,14 +42,13 @@ def load_data():
     with open(file_path) as f:
         data = json.load(f)
 
-    # ✅ Extract results correctly
-    if "results" in data:
-        df = pd.DataFrame(data["results"])
-    else:
-        st.error("Invalid data format: 'results' key missing")
+    if "results" not in data:
+        st.error("Invalid JSON format")
         return pd.DataFrame()
 
-    # ✅ Normalize column names (REAL-WORLD FIX)
+    df = pd.DataFrame(data["results"])
+
+    # Rename columns (enterprise standard)
     df = df.rename(columns={
         "asset_id": "asset",
         "business_risk": "risk_score",
@@ -61,7 +60,7 @@ def load_data():
 df = load_data()
 
 # ==============================
-# SIDEBAR FILTERS
+# SIDEBAR
 # ==============================
 st.sidebar.header("🔎 Controls")
 
@@ -78,7 +77,7 @@ assets = st.sidebar.multiselect(
 )
 
 # ==============================
-# FILTER DATA
+# FILTER
 # ==============================
 filtered_df = df[
     (df["risk_level"].isin(risk_levels)) &
@@ -92,7 +91,7 @@ st.title("🔐 Enterprise Cyber Risk Quantification Platform")
 st.markdown("### Translating Technical Vulnerabilities into Business Risk Decisions")
 
 # ==============================
-# EXECUTIVE METRICS
+# METRICS
 # ==============================
 col1, col2, col3 = st.columns(3)
 
@@ -111,52 +110,88 @@ for _, row in top_risks.iterrows():
     st.error(f"{row['cve_id']} | {row['asset']} | Risk: {row['risk_score']}")
 
 # ==============================
-# FULL TABLE (NO ERRORS)
+# DASHBOARD CHARTS
+# ==============================
+st.subheader("📊 Risk Overview Dashboard")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown("### Risk Level Distribution")
+    st.bar_chart(filtered_df["risk_level"].value_counts())
+
+with col2:
+    st.markdown("### Asset Risk Exposure")
+    st.bar_chart(filtered_df.groupby("asset")["risk_score"].mean())
+
+# ==============================
+# TECH vs BUSINESS RISK
+# ==============================
+st.subheader("⚖️ Technical vs Business Risk")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown("### Technical Risk")
+    st.bar_chart(filtered_df.groupby("cve_id")["base_risk"].mean())
+
+with col2:
+    st.markdown("### Business Risk")
+    st.bar_chart(filtered_df.groupby("cve_id")["risk_score"].mean())
+
+# ==============================
+# RISK AMPLIFICATION
+# ==============================
+st.subheader("📉 Risk Amplification")
+
+filtered_df["risk_gap"] = filtered_df["risk_score"] - filtered_df["base_risk"]
+
+st.bar_chart(filtered_df.groupby("asset")["risk_gap"].mean())
+
+# ==============================
+# FULL TABLE
 # ==============================
 st.subheader("📋 Full Risk Table")
 
-if not filtered_df.empty:
-    st.dataframe(filtered_df, use_container_width=True)
-
-    st.markdown("### 📊 Risk Summary")
-
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Average Risk Score", round(filtered_df["risk_score"].mean(), 2))
-    col2.metric("Max Risk Score", filtered_df["risk_score"].max())
-    col3.metric("Min Risk Score", filtered_df["risk_score"].min())
-else:
-    st.info("No data available")
+st.dataframe(filtered_df, use_container_width=True)
 
 # ==============================
-# CHART
-# ==============================
-st.subheader("📈 Risk Distribution")
-
-risk_counts = filtered_df["risk_level"].value_counts()
-st.bar_chart(risk_counts)
-
-# ==============================
-# LLM SECTION (KEY FEATURE)
+# LLM SECTION
 # ==============================
 st.subheader("🧠 AI Business Explanation")
 
 selected_cve = st.selectbox("Select CVE", filtered_df["cve_id"].unique())
 
-selected_row = filtered_df[filtered_df["cve_id"] == selected_cve].iloc[0]
+selected_rows = filtered_df[filtered_df["cve_id"] == selected_cve]
 
-if "llm_explanation" in selected_row and pd.notna(selected_row["llm_explanation"]):
-    st.info(selected_row["llm_explanation"])
-else:
-    st.warning("No AI explanation available")
+for _, row in selected_rows.iterrows():
+    st.markdown(f"### 🔹 Asset: {row['asset']}")
+    st.write(f"**Risk Level:** {row['risk_level']}")
+    st.write(f"**Decision:** {row['decision']}")
+    st.info(row["llm_explanation"])
 
 # ==============================
-# INSIGHTS
+# EXECUTIVE INSIGHTS
 # ==============================
-st.subheader("🧠 Insights")
+st.subheader("🧠 Executive Insights")
 
-if len(filtered_df[filtered_df["risk_level"] == "Critical"]) > 5:
-    st.warning("⚠️ High number of critical risks detected!")
+critical_count = len(filtered_df[filtered_df["risk_level"] == "Critical"])
+high_count = len(filtered_df[filtered_df["risk_level"] == "High"])
+
+if critical_count > 5:
+    st.error(f"🚨 {critical_count} critical risks require immediate action")
+
+if high_count > 10:
+    st.warning(f"⚠️ High risk exposure detected")
 
 if not filtered_df.empty:
-    most_risky_asset = filtered_df.groupby("asset")["risk_score"].mean().idxmax()
-    st.success(f"Most at-risk asset: {most_risky_asset}")
+    asset_risk = filtered_df.groupby("asset")["risk_score"].mean()
+    top_asset = asset_risk.idxmax()
+    st.info(f"🔥 Most exposed asset: {top_asset}")
+
+    top_cve = filtered_df.sort_values(by="risk_score", ascending=False).iloc[0]["cve_id"]
+    st.info(f"🎯 Highest impact vulnerability: {top_cve}")
+
+# Decision distribution
+st.markdown("### 🏢 Decision Overview")
+st.bar_chart(filtered_df["decision"].value_counts())
