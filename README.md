@@ -10,7 +10,7 @@ This platform includes a basic authentication layer to simulate real-world acces
 Use the following credentials to explore the dashboard
 
 Username: admin  
-Password: crq123
+Password: test1234
 
 
 https://cyber-risk-platform-8mcnbbknmnk4appjvv2d4ms.streamlit.app/
